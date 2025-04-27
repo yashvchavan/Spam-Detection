@@ -1,49 +1,42 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
-import axios from 'axios';
+import { View, Text, FlatList, StyleSheet } from 'react-native';
+import { getNotifications } from '../services/api';
 
 const NotificationsScreen = () => {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
 
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const response = await axios.get('http://10.0.2.2:8000/api/notifications/');
-        setNotifications(response.data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchNotifications();
-  }, []);
+  // frontend/src/screens/NotificationsScreen.js
+useEffect(() => {
+  const loadData = async () => {
+    try {
+      const data = await getNotifications();
+      setNotifications(data);
+    } catch (error) {
+      console.error('Screen Error:', error);
+      Alert.alert('Error', 'Failed to load notifications');
+    } finally {
+      setLoading(false);
+    }
+  };
+  loadData();
+}, []);
 
-  const renderItem = ({ item }) => (
-    <View style={[styles.item, item.is_spam && styles.spamItem]}>
-      <Text style={styles.title}>{item.title}</Text>
-      <Text>{item.message}</Text>
-      <Text style={item.is_spam ? styles.spamText : styles.hamText}>
-        {item.is_spam ? 'SPAM' : 'NOT SPAM'}
-      </Text>
-    </View>
-  );
+const renderItem = ({ item }) => (
+  <View style={[styles.item, item.is_spam && styles.spamItem]}>
+    <Text style={styles.title}>{item.title}</Text>
+    <Text>{item.message}</Text>
+    <Text style={item.is_spam ? styles.spamText : styles.hamText}>
+      {item.is_spam ? `SPAM (${Math.round(item.confidence*100)}% certainty)` 
+                   : `LEGITIMATE (${Math.round(item.confidence*100)}% certainty)`}
+    </Text>
+  </View>
+);
 
   if (loading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.error}>Error: {error}</Text>
+      <View style={styles.container}>
+        <Text>Loading notifications...</Text>
       </View>
     );
   }
@@ -53,10 +46,10 @@ const NotificationsScreen = () => {
       data={notifications}
       renderItem={renderItem}
       keyExtractor={item => item.id}
-      contentContainerStyle={styles.container}
     />
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {
